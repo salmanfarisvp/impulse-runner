@@ -378,11 +378,12 @@ month. A December release is `26.12.0`.
 GitHub Actions builds amd64 and arm64 snaps on every push and pull request. To release:
 
 ```bash
-# 1. bump the version in snap/snapcraft.yaml, e.g. version: '26.11.1'
-git commit -am "Release 26.11.1"
+# 1. bump the version in snap/snapcraft.yaml, e.g. version: '26.11.2',
+#    and add a "## 26.11.2" section to CHANGELOG.md (it becomes the release notes)
+git commit -am "Release 26.11.2"
 # 2. tag it with the same version, prefixed with v
-git tag v26.11.1
-git push origin main v26.11.1
+git tag v26.11.2
+git push origin main v26.11.2
 ```
 
 The tag build checks the tag matches `snapcraft.yaml`, uploads both snaps to the Snap Store

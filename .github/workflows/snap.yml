@@ -45,6 +45,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+      - name: Release notes from CHANGELOG.md
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '/^## /{p=($2==v); next} p' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::warning::CHANGELOG.md has no '## $v' section; using generated notes only"
+          fi
+          printf '\n## Install\n\n```bash\nsudo snap install impulse-runner --channel=%s\n```\n' \
+            "${{ vars.SNAP_CHANNEL || 'edge' }}" >> notes.md
       - uses: actions/download-artifact@v4
         with:
           pattern: snap-*
@@ -59,4 +69,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: "*.snap"
-          generate_release_notes: true
+          body_path: notes.md
+          generate_release_notes: true   # appends the full commit comparison link
