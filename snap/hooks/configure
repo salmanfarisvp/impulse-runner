@@ -1,0 +1,26 @@
+#!/bin/sh -e
+# Validate options, then restart the service so it picks them up.
+
+fail() { echo "$1" >&2; exit 1; }
+is_int() { expr "$1" : '[0-9][0-9]*$' >/dev/null; }
+is_frac() { expr "$1" : '0*\.[0-9]*$' >/dev/null || [ "$1" = 0 ] || [ "$1" = 1 ]; }
+
+port="$(snapctl get port)"
+input="$(snapctl get input)"
+camera="$(snapctl get camera)"
+res="$(snapctl get camera-resolution)"
+threshold="$(snapctl get threshold)"
+overlap="$(snapctl get audio-overlap)"
+
+[ -z "$port" ] || is_int "$port" || fail "port must be a number, got '$port'"
+case "$input" in ""|auto|camera|microphone|api) ;;
+  *) fail "input must be auto, camera, microphone or api, got '$input'" ;; esac
+[ -z "$camera" ] || is_int "$camera" || expr "$camera" : '/dev/' >/dev/null \
+  || fail "camera must be N (for /dev/videoN) or a /dev path, got '$camera'"
+[ -z "$res" ] || expr "$res" : '[0-9][0-9]*x[0-9][0-9]*$' >/dev/null \
+  || fail "camera-resolution must look like 640x480, got '$res'"
+[ -z "$threshold" ] || is_frac "$threshold" || fail "threshold must be between 0 and 1, got '$threshold'"
+[ -z "$overlap" ] || is_frac "$overlap" || fail "audio-overlap must be between 0 and 1, got '$overlap'"
+
+# The service isn't running yet during install; ignore that case.
+snapctl restart impulse-runner 2>/dev/null || true

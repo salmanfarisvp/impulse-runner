@@ -1,0 +1,7 @@
+#!/bin/sh -e
+# Defaults, and a random token that protects model uploads from the web page.
+snapctl set port=8000 input=auto camera=0 camera-resolution=640x480 \
+  audio-device=default audio-overlap=0.5 threshold=0.5
+if [ -z "$(snapctl get upload-token)" ]; then
+  snapctl set upload-token="$(head -c 9 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+fi

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>impulse-runner</title>
+<style>
+  :root { --bg:#0e1116; --panel:#171b22; --line:#262c36; --text:#e8ecf1; --dim:#8b95a3;
+          --accent:#3ddc84; --warn:#ffb020; --err:#ff5c5c; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 system-ui, sans-serif;
+         height:100vh; display:flex; flex-direction:column; }
+  body.kiosk { cursor:none; }
+  header { display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:17px; margin:0; font-weight:600; }
+  header .model { color:var(--dim); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pill { font-size:12px; padding:3px 9px; border-radius:99px; border:1px solid var(--line); color:var(--dim); }
+  .pill.on { color:var(--accent); border-color:var(--accent); }
+  button { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px;
+           padding:7px 12px; font:inherit; cursor:pointer; }
+  button:hover { border-color:var(--dim); }
+  main { flex:1; display:grid; grid-template-columns: 1fr 340px; min-height:0; }
+  @media (max-width: 800px) { main { grid-template-columns:1fr; } }
+  #stage { display:flex; align-items:center; justify-content:center; padding:16px; min-height:0; position:relative; }
+  #video { max-width:100%; max-height:100%; border-radius:10px; background:#000; display:none; }
+  #big { text-align:center; display:none; }
+  #big .label { font-size:clamp(40px, 9vw, 110px); font-weight:700; letter-spacing:-.02em; }
+  #big .conf { font-size:22px; color:var(--dim); margin-top:6px; }
+  #meter { width:min(420px, 80vw); height:8px; background:var(--line); border-radius:4px; margin:28px auto 0; overflow:hidden; }
+  #meter div { height:100%; width:0; background:var(--accent); transition:width .1s; }
+  #msg { max-width:560px; text-align:center; color:var(--dim); padding:20px; }
+  #msg.error { color:var(--err); }
+  aside { border-left:1px solid var(--line); padding:18px; overflow:auto; display:flex; flex-direction:column; gap:18px; }
+  @media (max-width: 800px) { aside { border-left:0; border-top:1px solid var(--line); } }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 8px; font-weight:600; }
+  .top { font-size:30px; font-weight:700; }
+  .top small { font-size:16px; color:var(--dim); font-weight:400; margin-left:6px; }
+  .bar { margin:6px 0; }
+  .bar .row { display:flex; justify-content:space-between; font-size:14px; }
+  .bar .track { height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin-top:3px; }
+  .bar .fill { height:100%; background:var(--accent); }
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:9px 11px; }
+  .stat b { display:block; font-size:19px; }
+  .stat span { font-size:12px; color:var(--dim); }
+  code, pre { font:12.5px ui-monospace, Menlo, monospace; }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; overflow:auto; white-space:pre-wrap; word-break:break-all; margin:0; }
+  dialog { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:12px; width:min(480px, 92vw); }
+  dialog::backdrop { background:rgba(0,0,0,.6); }
+  dialog input { width:100%; padding:8px; margin:6px 0 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:6px; font:inherit; }
+  .drop { border:2px dashed var(--line); border-radius:10px; padding:26px; text-align:center; color:var(--dim); margin-bottom:12px; }
+  .drop.over { border-color:var(--accent); color:var(--text); }
+  .row-end { display:flex; justify-content:flex-end; gap:8px; }
+  #upmsg { min-height:1.4em; font-size:14px; }
+  .kiosk #change { display:none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>impulse-runner</h1>
+  <span class="model" id="model">–</span>
+  <span class="pill" id="mode">–</span>
+  <button id="change">Load model</button>
+</header>
+<main>
+  <section id="stage">
+    <canvas id="video"></canvas>
+    <div id="big"><div class="label" id="bigLabel">–</div><div class="conf" id="bigConf"></div>
+      <div id="meter"><div></div></div></div>
+    <div id="msg">Connecting…</div>
+  </section>
+  <aside>
+    <div><h2>Detected</h2><div class="top" id="top">–</div></div>
+    <div id="barsBox"><h2 id="barsTitle">Scores</h2><div id="bars"></div></div>
+    <div class="stats">
+      <div class="stat"><b id="fps">–</b><span>results / s</span></div>
+      <div class="stat"><b id="lat">–</b><span>ms per inference</span></div>
+      <div class="stat"><b id="thr">–</b><span>threshold</span></div>
+      <div class="stat"><b id="anom">–</b><span>anomaly</span></div>
+    </div>
+    <div id="apiBox" style="display:none"><h2>Send data</h2><pre id="apiHelp"></pre></div>
+  </aside>
+</main>
+
+<dialog id="dlg">
+  <h3 style="margin-top:0">Load a model</h3>
+  <p style="color:var(--dim);margin-top:0">Any Edge Impulse project, exported as
+    <b id="target">Linux</b> (<code>.eim</code>).</p>
+  <div class="drop" id="drop">Drop a .eim here or <label style="color:var(--accent);cursor:pointer">
+    choose a file<input type="file" id="file" accept=".eim" hidden></label><div id="fname"></div></div>
+  <label>Upload token <span style="color:var(--dim)">(<code>sudo snap get impulse-runner upload-token</code>)</span>
+    <input id="token" autocomplete="off"></label>
+  <div id="upmsg"></div>
+  <div class="row-end"><button id="cancel">Cancel</button><button id="send">Upload</button></div>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const kiosk = new URLSearchParams(location.search).has("kiosk");
+if (kiosk) document.body.classList.add("kiosk");
+let mode = null, frameLoop = false;
+const canvas = $("video"), ctx = canvas.getContext("2d");
+
+function show(el, on) { el.style.display = on ? "block" : "none"; }
+function pct(v) { return (v * 100).toFixed(0) + "%"; }
+
+function render(s) {
+  const m = s.model;
+  $("model").textContent = m ? `${m.name}${m.version ? " v" + m.version : ""} · ${m.model_type.replace(/_/g, " ")}` : "no model";
+  $("mode").textContent = s.mode || s.state;
+  $("mode").className = "pill" + (s.state === "ok" ? " on" : "");
+  $("thr").textContent = s.threshold;
+  $("target").textContent = s.target;
+  mode = s.mode;
+
+  const r = s.result || {};
+  const msg = $("msg");
+  if (s.message && (!s.result || s.state !== "ok")) {
+    msg.textContent = s.message; msg.className = s.state === "error" ? "error" : ""; show(msg, true);
+  } else show(msg, false);
+
+  // stage
+  show(canvas, mode === "camera" && !!s.updated);
+  show($("big"), (mode === "microphone" || mode === "api") && !!m);
+  if (mode === "camera" && !frameLoop) { frameLoop = true; nextFrame(-1); }
+
+  const top = r.top;
+  $("top").innerHTML = top ? `${top.label}<small>${pct(top.value)}</small>` : "–";
+  $("bigLabel").textContent = top ? top.label : (r.classification ? "…" : "waiting");
+  $("bigConf").textContent = top ? pct(top.value) : "";
+  $("meter").firstElementChild.style.width = Math.min(100, (s.level || 0) * 400) + "%";
+  show($("meter"), mode === "microphone");
+
+  // scores: classification, or counts of boxes
+  let rows = [];
+  if (r.classification) {
+    rows = Object.entries(r.classification).filter(([k]) => k !== "anomaly")
+      .sort((a, b) => b[1] - a[1]).slice(0, 8);
+    $("barsTitle").textContent = "Scores";
+  } else if (r.bounding_boxes) {
+    const best = {};
+    r.bounding_boxes.forEach(b => best[b.label] = Math.max(best[b.label] || 0, b.value));
+    rows = Object.entries(best).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    $("barsTitle").textContent = `Objects (${r.bounding_boxes.length})`;
+  }
+  $("bars").innerHTML = rows.length ? rows.map(([k, v]) =>
+    `<div class="bar"><div class="row"><span>${esc(k)}</span><span>${pct(v)}</span></div>
+     <div class="track"><div class="fill" style="width:${v * 100}%"></div></div></div>`).join("")
+    : `<span style="color:var(--dim)">nothing above threshold</span>`;
+
+  $("fps").textContent = s.fps != null && mode !== "api" ? s.fps : "–";
+  $("lat").textContent = r.latency_ms != null ? r.latency_ms : "–";
+  const a = r.anomaly ?? r.visual_anomaly_max;
+  $("anom").textContent = a != null ? a.toFixed(2) : "–";
+
+  show($("apiBox"), mode === "api" && !kiosk && !!m);
+  if (mode === "api" && m) {
+    const host = location.host;
+    $("apiHelp").textContent =
+`# whole window (${m.input_features_count} values${m.axis_count > 1 ? ", " + m.axis_count + " axes interleaved" : ""}):
+curl -X POST http://${host}/api/classify \\
+  -d '{"features": [ ... ]}'
+
+# or stream readings; it classifies each time
+# the ${m.input_features_count}-value window fills:
+curl -X POST http://${host}/api/data \\
+  -d '{"values": [[${Array(m.axis_count).fill(0).map((_, i) => "a" + i).join(", ")}], ...]}'`;
+  }
+}
+
+function esc(t) { return String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+async function poll() {
+  try { render(await (await fetch("/api/status", {cache: "no-store"})).json()); }
+  catch (e) { $("msg").textContent = "Can't reach impulse-runner…"; show($("msg"), true); }
+  setTimeout(poll, mode === "camera" ? 300 : 150);
+}
+
+// Pull one JPEG at a time and paint it onto a canvas: smooth in WebKit kiosks,
+// where an MJPEG <img> flickers.
+async function nextFrame(seq) {
+  if (mode !== "camera") { frameLoop = false; return; }
+  try {
+    const res = await fetch(`/frame.jpg?after=${seq}`, {cache: "no-store"});
+    if (!res.ok) throw 0;
+    const n = +res.headers.get("X-Frame-Seq");
+    const url = URL.createObjectURL(await res.blob());
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    URL.revokeObjectURL(url);
+    if (canvas.width !== img.naturalWidth) { canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; }
+    ctx.drawImage(img, 0, 0);
+    requestAnimationFrame(() => nextFrame(n));
+  } catch (e) { setTimeout(() => nextFrame(seq), 1000); }
+}
+
+// upload
+const dlg = $("dlg"); let file = null;
+try { $("token").value = localStorage.getItem("ir-token") || ""; } catch (e) {}
+$("change").onclick = () => { $("upmsg").textContent = ""; dlg.showModal(); };
+$("cancel").onclick = () => dlg.close();
+$("file").onchange = e => pick(e.target.files[0]);
+const drop = $("drop");
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); pick(e.dataTransfer.files[0]); };
+function pick(f) { file = f; $("fname").textContent = f ? `${f.name} · ${(f.size / 1e6).toFixed(1)} MB` : ""; }
+$("send").onclick = async () => {
+  if (!file) { $("upmsg").textContent = "Choose a .eim first."; return; }
+  const token = $("token").value.trim();
+  try { localStorage.setItem("ir-token", token); } catch (e) {}
+  $("upmsg").textContent = "Uploading and starting the model…"; $("send").disabled = true;
+  try {
+    const res = await fetch("/api/model", {method: "POST", body: file, headers: {"X-Upload-Token": token}});
+    const j = await res.json();
+    if (!res.ok) throw new Error(j.error || res.status);
+    $("upmsg").textContent = `Loaded ${j.model.name} → ${j.mode} input`;
+    setTimeout(() => dlg.close(), 900);
+  } catch (e) { $("upmsg").textContent = "Failed: " + e.message; }
+  $("send").disabled = false;
+};
+
+poll();
+</script>
+</body>
+</html>

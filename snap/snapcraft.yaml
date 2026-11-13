@@ -1,0 +1,86 @@
+name: impulse-runner
+base: core24
+version: '0.1.0'
+title: Impulse Runner
+contact: https://github.com/salmanfarisvp/impulse-runner/issues
+summary: Run any Edge Impulse model (.eim) on Ubuntu Core, plug and play
+description: |
+  impulse-runner runs any Edge Impulse model exported as a Linux .eim file and
+  feeds it live data, with no code to write:
+
+   * camera models (classification, object detection, FOMO, visual anomaly)
+     get frames from a USB or CSI camera
+   * audio models (keyword spotting, sound classification) get the microphone
+   * IMU, environmental and sensor-fusion models get readings over a simple
+     HTTP API (POST /api/data), and any model can be called with POST /api/classify
+
+  Results are served as JSON and as a live web page, which Ubuntu Frame can
+  show full screen on an attached display.
+
+  Load a model by uploading it from the web page, by copying it to
+  /var/snap/impulse-runner/common/model.eim, or with
+  snap set impulse-runner model-url=https://.../model.eim
+
+  Options (snap set impulse-runner ...): port, input (auto|camera|microphone|api),
+  camera, camera-resolution, audio-device, audio-overlap, threshold, model-url,
+  upload-token.
+
+  Not affiliated with or endorsed by Edge Impulse.
+license: Apache-2.0
+website: https://github.com/salmanfarisvp/impulse-runner
+source-code: https://github.com/salmanfarisvp/impulse-runner
+issues: https://github.com/salmanfarisvp/impulse-runner/issues
+grade: stable
+confinement: strict
+
+platforms:
+  arm64:
+  amd64:
+
+layout:
+  # alsa-lib reads its config and plugins from absolute paths
+  /usr/share/alsa:
+    bind: $SNAP/usr/share/alsa
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/alsa-lib:
+    bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/alsa-lib
+
+apps:
+  impulse-runner:
+    command: bin/python3 $SNAP/app/impulse_runner.py
+    daemon: simple
+    restart-condition: always
+    restart-delay: 3s
+    environment:
+      OPENCV_LOG_LEVEL: ERROR
+    plugs: [camera, alsa, audio-record, network, network-bind]
+  info:
+    command: bin/python3 $SNAP/app/impulse_runner.py info
+    plugs: [network, network-bind]
+
+parts:
+  deps:
+    plugin: python
+    source: .
+    python-requirements: [requirements.txt]
+    stage-packages: [python3-venv]
+    build-environment:
+      - PIP_DEFAULT_TIMEOUT: "120"
+      - PIP_RETRIES: "10"
+  alsa:
+    plugin: nil
+    stage-packages: [alsa-utils]
+    stage:
+      - usr/bin/arecord
+      - usr/bin/aplay
+      - usr/lib/*/libasound*
+      - usr/lib/*/alsa-lib
+      - usr/share/alsa
+  app:
+    plugin: dump
+    source: src/
+    organize:
+      impulse_runner.py: app/impulse_runner.py
+    stage: ["-__pycache__"]
+    override-prime: |
+      craftctl default
+      chmod 755 app/impulse_runner.py
