@@ -53,7 +53,7 @@ apps:
     restart-delay: 3s
     environment:
       OPENCV_LOG_LEVEL: ERROR
-    plugs: [camera, alsa, audio-record, network, network-bind, hardware-observe]
+    plugs: [camera, alsa, network, network-bind, hardware-observe]
   info:
     command: bin/python3 $SNAP/app/impulse_runner.py info
     plugs: [network, network-bind]

@@ -478,7 +478,7 @@ class MicrophoneSource(Source):
                 break
             self.hub.update(state="error", message=(
                 f"Microphone {device} failed: {err or 'no data'}. Plug one in and run: "
-                "sudo snap connect impulse-runner:audio-record (or :alsa)"))
+                "sudo snap connect impulse-runner:alsa"))
             log(f"arecord failed: {err}")
             self.stop.wait(3)
 

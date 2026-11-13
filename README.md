@@ -307,7 +307,6 @@ Interfaces:
 | --- | --- | --- |
 | `camera` | camera models | No on Ubuntu Core: `sudo snap connect impulse-runner:camera` |
 | `alsa` | audio models | No: `sudo snap connect impulse-runner:alsa` |
-| `audio-record` | audio through PulseAudio/PipeWire (desktop) | No |
 | `hardware-observe` | CPU temperature and board name on the page | No: `sudo snap connect impulse-runner:hardware-observe` |
 | `network`, `network-bind` | HTTP | Yes |
 
