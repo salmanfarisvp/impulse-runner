@@ -497,6 +497,63 @@ def pick_mode(runner, wanted):
 
 
 # --------------------------------------------------------------------------
+# System stats (CPU, RAM, temperature) for the page
+# --------------------------------------------------------------------------
+
+class SystemStats:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._cpu = None      # (busy, total) from the previous sample
+        self._cache, self._at = {}, 0.0
+        self.board = self._read("/proc/device-tree/model", "").replace("\0", "").strip() or None
+
+    @staticmethod
+    def _read(path, default=None):
+        try:
+            with open(path) as f:
+                return f.read()
+        except OSError:
+            return default
+
+    def get(self):
+        with self._lock:
+            if time.time() - self._at < 1:
+                return self._cache
+            out = {"board": self.board, "cores": os.cpu_count()}
+            stat = self._read("/proc/stat")
+            if stat:
+                v = [int(x) for x in stat.split("\n", 1)[0].split()[1:]]
+                busy, total = sum(v) - v[3] - (v[4] if len(v) > 4 else 0), sum(v)
+                if self._cpu and total > self._cpu[1]:
+                    out["cpu"] = round(100 * (busy - self._cpu[0]) / (total - self._cpu[1]), 1)
+                self._cpu = (busy, total)
+            mem = self._read("/proc/meminfo")
+            if mem:
+                kv = {l.split(":")[0]: int(l.split()[1]) for l in mem.splitlines() if l.split()[1:]}
+                total, avail = kv.get("MemTotal", 0), kv.get("MemAvailable", 0)
+                if total:
+                    out["ram_used_mb"] = round((total - avail) / 1024)
+                    out["ram_total_mb"] = round(total / 1024)
+                    out["ram"] = round(100 * (total - avail) / total, 1)
+            temp = self._read("/sys/class/thermal/thermal_zone0/temp")
+            if temp and temp.strip().lstrip("-").isdigit():
+                out["temp_c"] = round(int(temp) / 1000, 1)
+            elif os.path.exists("/sys/class/thermal/thermal_zone0"):
+                out["temp_hint"] = "sudo snap connect impulse-runner:hardware-observe"
+            freq = self._read("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq")
+            if freq and freq.strip().isdigit():
+                out["cpu_mhz"] = round(int(freq) / 1000)
+            load = self._read("/proc/loadavg")
+            if load:
+                out["load"] = float(load.split()[0])
+            self._cache, self._at = out, time.time()
+            return out
+
+
+SYSTEM = SystemStats()
+
+
+# --------------------------------------------------------------------------
 # Hub: current model, input, latest result
 # --------------------------------------------------------------------------
 
@@ -535,6 +592,7 @@ class Hub:
         s["model_path"] = MODEL_PATH
         s["target"] = EI_TARGET
         s["version"] = os.environ.get("SNAP_VERSION", "dev")
+        s["system"] = SYSTEM.get()
         s["upload_enabled"] = bool(self.settings["upload_token"])
         return s
 

@@ -43,6 +43,9 @@
   .stat { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:9px 11px; }
   .stat b { display:block; font-size:19px; }
   .stat span { font-size:12px; color:var(--dim); }
+  .stat .track { height:4px; background:var(--line); border-radius:2px; overflow:hidden; margin-top:6px; }
+  .stat .fill { height:100%; width:0; background:var(--accent); transition:width .4s; }
+  .stat .fill.hot { background:var(--warn); } .stat .fill.crit { background:var(--err); }
   code, pre { font:12.5px ui-monospace, Menlo, monospace; }
   pre { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; overflow:auto; white-space:pre-wrap; word-break:break-all; margin:0; }
   dialog { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:12px; width:min(480px, 92vw); }
@@ -72,12 +75,20 @@
   <aside>
     <div><h2>Detected</h2><div class="top" id="top">–</div></div>
     <div id="barsBox"><h2 id="barsTitle">Scores</h2><div id="bars"></div></div>
+    <div><h2 id="sysTitle">System</h2>
+    <div class="stats">
+      <div class="stat"><b id="cpu">–</b><span id="cpuSub">CPU</span><div class="track"><div class="fill" id="cpuBar"></div></div></div>
+      <div class="stat"><b id="ram">–</b><span id="ramSub">RAM</span><div class="track"><div class="fill" id="ramBar"></div></div></div>
+      <div class="stat"><b id="temp">–</b><span id="tempSub">CPU temp</span><div class="track"><div class="fill" id="tempBar"></div></div></div>
+      <div class="stat"><b id="load">–</b><span id="loadSub">load (1 min)</span></div>
+    </div></div>
+    <div><h2>Model</h2>
     <div class="stats">
       <div class="stat"><b id="fps">–</b><span>results / s</span></div>
       <div class="stat"><b id="lat">–</b><span>ms per inference</span></div>
       <div class="stat"><b id="thr">–</b><span>threshold</span></div>
       <div class="stat"><b id="anom">–</b><span>anomaly</span></div>
-    </div>
+    </div></div>
     <div id="apiBox" style="display:none"><h2>Send data</h2><pre id="apiHelp"></pre></div>
   </aside>
 </main>
@@ -114,6 +125,7 @@ function render(s) {
   $("ver").textContent = s.version || "";
   mode = s.mode;
 
+  renderSystem(s.system || {});
   const r = s.result || {};
   const msg = $("msg");
   if (s.message && (!s.result || s.state !== "ok")) {
@@ -167,6 +179,24 @@ curl -X POST http://${host}/api/classify \\
 curl -X POST http://${host}/api/data \\
   -d '{"values": [[${Array(m.axis_count).fill(0).map((_, i) => "a" + i).join(", ")}], ...]}'`;
   }
+}
+
+function meter(id, value, warn, crit) {
+  const el = $(id);
+  el.style.width = Math.max(0, Math.min(100, value)) + "%";
+  el.className = "fill" + (value >= crit ? " crit" : value >= warn ? " hot" : "");
+}
+function renderSystem(y) {
+  $("sysTitle").textContent = y.board ? "System · " + y.board.replace(/ Rev [\d.]+$/, "") : "System";
+  if (y.cpu != null) { $("cpu").textContent = y.cpu.toFixed(0) + "%"; meter("cpuBar", y.cpu, 70, 90); }
+  $("cpuSub").textContent = "CPU" + (y.cores ? ` · ${y.cores}×` : "") + (y.cpu_mhz ? `${y.cores ? "" : " · "}${(y.cpu_mhz / 1000).toFixed(1)} GHz` : "");
+  if (y.ram != null) {
+    $("ram").textContent = y.ram.toFixed(0) + "%"; meter("ramBar", y.ram, 75, 90);
+    $("ramSub").textContent = `RAM · ${(y.ram_used_mb / 1024).toFixed(1)} / ${(y.ram_total_mb / 1024).toFixed(1)} GB`;
+  }
+  if (y.temp_c != null) { $("temp").textContent = y.temp_c.toFixed(0) + "°C"; meter("tempBar", y.temp_c, 70, 80); $("tempSub").textContent = "CPU temp"; }
+  else if (y.temp_hint) { $("temp").textContent = "–"; $("tempSub").textContent = "connect hardware-observe"; $("tempSub").title = y.temp_hint; }
+  $("load").textContent = y.load != null ? y.load.toFixed(2) : "–";
 }
 
 function esc(t) { return String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }

@@ -59,6 +59,7 @@ sudo snap install impulse-runner
 # give it the hardware it needs (Ubuntu Core doesn't auto-connect these)
 sudo snap connect impulse-runner:camera
 sudo snap connect impulse-runner:alsa
+sudo snap connect impulse-runner:hardware-observe   # CPU temperature + board name on the page
 
 # the token that protects model uploads
 sudo snap get impulse-runner upload-token
@@ -91,6 +92,7 @@ sudo nmcli d wifi connect "<SSID>" password "<password>"
 sudo snap install impulse-runner
 sudo snap connect impulse-runner:camera      # camera models
 sudo snap connect impulse-runner:alsa        # audio models
+sudo snap connect impulse-runner:hardware-observe   # CPU temperature on the page
 ```
 
 Check it's running:
@@ -242,7 +244,7 @@ including camera and audio models, if you want to feed it your own data.
 
 | Method | Path | Body | Returns |
 | --- | --- | --- | --- |
-| GET | `/api/status` | | State, active input, model info, latest result, fps |
+| GET | `/api/status` | | State, active input, model info, latest result, fps, system stats (CPU, RAM, temperature, load) |
 | GET | `/api/model` | | Model info: labels, sensor, input size, frequency, all parameters |
 | POST | `/api/classify` | `{"features": [...]}` or `1,2,3,...` | One result |
 | POST | `/api/data` | `{"values": [[a, b, c], ...]}` | Window fill + result (input `api` only) |
@@ -306,6 +308,7 @@ Interfaces:
 | `camera` | camera models | No on Ubuntu Core: `sudo snap connect impulse-runner:camera` |
 | `alsa` | audio models | No: `sudo snap connect impulse-runner:alsa` |
 | `audio-record` | audio through PulseAudio/PipeWire (desktop) | No |
+| `hardware-observe` | CPU temperature and board name on the page | No: `sudo snap connect impulse-runner:hardware-observe` |
 | `network`, `network-bind` | HTTP | Yes |
 
 ## Troubleshooting
@@ -402,7 +405,7 @@ gh secret set SNAPCRAFT_STORE_CREDENTIALS < ci-creds && rm ci-creds
 ```
 
 The `camera` and `alsa` interfaces aren't auto-connected for store snaps. To have them
-connect on install, request auto-connection on the
+connect on install, request auto-connection (also for `hardware-observe`) on the
 [Snapcraft forum](https://forum.snapcraft.io/c/store-requests/19).
 
 ## Publishing to the Snap Store

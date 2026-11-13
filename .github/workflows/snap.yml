@@ -52,6 +52,7 @@ jobs:
       - name: Upload to the Snap Store
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
         run: |
           sudo snap install snapcraft --classic
           for s in *.snap; do snapcraft upload "$s" --release="${{ vars.SNAP_CHANNEL || 'edge' }}"; done
