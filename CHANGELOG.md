@@ -3,6 +3,17 @@
 impulse-runner uses CalVer: `YY.MM.N`. Each release's section below becomes its GitHub
 Release notes.
 
+## 26.11.2
+
+Store listing polish. No behaviour changes.
+
+- App icon (detection brackets with a signal pulse), shown in the Snap Store and `snap info`.
+- README: Snap Store badge and icon.
+
+```bash
+sudo snap install impulse-runner --edge
+```
+
 ## 26.11.1
 
 The first public release of impulse-runner: run any Edge Impulse model (`.eim`) on

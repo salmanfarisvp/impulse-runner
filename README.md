@@ -1,4 +1,8 @@
+<img src="snap/gui/impulse-runner.png" alt="" width="96" align="right">
+
 # impulse-runner
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/impulse-runner)
 
 **Run any Edge Impulse model on Ubuntu Core. Plug and play.**
 

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#0e1012"/>
+  <rect x="6" y="6" width="500" height="500" rx="106" fill="none" stroke="#1f2327" stroke-width="4"/>
+  <!-- detection brackets, as drawn on the live video -->
+  <g fill="none" stroke="#bef06e" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 186 V128 a16 16 0 0 1 16 -16 H186"/>
+    <path d="M326 112 H384 a16 16 0 0 1 16 16 V186"/>
+    <path d="M400 326 V384 a16 16 0 0 1 -16 16 H326"/>
+    <path d="M186 400 H128 a16 16 0 0 1 -16 -16 V326"/>
+  </g>
+  <!-- the impulse: a signal spike through the frame -->
+  <path d="M84 268 H186 L218 214 L262 326 L298 172 L330 268 H428" fill="none" stroke="#eef1ec"
+        stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
