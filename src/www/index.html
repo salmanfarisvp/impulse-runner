@@ -48,7 +48,7 @@
   aside { background: var(--rail); border-left: 1px solid var(--rule); display: flex; flex-direction: column;
           min-height: 0; overflow: auto; }
   @media (max-width: 820px) { aside { border-left: 0; border-top: 1px solid var(--rule); } }
-  .sec { padding: 1.25rem 1.625rem; border-bottom: 1px solid var(--rule); }
+  .sec { padding: 1rem 1.625rem; border-bottom: 1px solid var(--rule); }
   .eyebrow { font: 600 0.8rem/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute);
              display: flex; justify-content: space-between; gap: 0.625rem; }
 
@@ -62,19 +62,19 @@
   @keyframes pulse { 70% { box-shadow: 0 0 0 0.5rem rgba(190,240,110,0); } 100% { box-shadow: 0 0 0 0 rgba(190,240,110,0); } }
 
   /* hero */
-  .hero { padding: 1.625rem 1.625rem 1.5rem; }
-  #top { font: 700 3.6rem/.95 var(--display); letter-spacing: -.035em; margin-top: 0.9rem;
+  .hero { padding: 1.3rem 1.625rem 1rem; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  #top { font: 700 3rem/.95 var(--display); letter-spacing: -.035em; margin-top: 0.7rem;
          overflow-wrap: anywhere; min-height: 1em; }
   #top.none { color: var(--faint); }
-  .conf { display: flex; align-items: center; gap: 0.875rem; margin-top: 1rem; }
-  #conf { font: 600 1.625rem var(--mono); font-variant-numeric: tabular-nums; min-width: 3.2ch; }
+  .conf { display: flex; align-items: center; gap: 0.875rem; margin-top: 0.75rem; }
+  #conf { font: 600 1.4rem var(--mono); font-variant-numeric: tabular-nums; min-width: 3.2ch; }
   .ticks { flex: 1; display: grid; grid-template-columns: repeat(20, 1fr); gap: 0.1875rem; height: 0.875rem; }
   .ticks i { background: var(--rule); border-radius: 1px; }
   .ticks i.on { background: var(--signal); }
-  #caption { font: 400 0.8125rem var(--mono); color: var(--mute); margin-top: 0.75rem; min-height: 1.3em; }
+  #caption { font: 400 0.8125rem var(--mono); color: var(--mute); margin-top: 0.5rem; min-height: 1.3em; }
 
   /* object / score list */
-  .list { margin-top: 0.75rem; }
+  .list { margin-top: 0.4rem; }
   .row { display: grid; grid-template-columns: 1fr auto auto; gap: 0.875rem; align-items: baseline;
          padding: 0.5rem 0; border-top: 1px solid var(--rule); font-size: 1.062rem; }
   .row:first-child { border-top: 0; }
@@ -84,22 +84,22 @@
   .row .bar span { display: block; height: 100%; background: var(--signal); }
 
   /* telemetry */
-  .tele { display: grid; grid-template-columns: 1fr 1fr; gap: 1.125rem 1.375rem; margin-top: 1rem; }
-  .m .k { font: 600 0.8rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
-  .m .val { font: 600 1.688rem/1.1 var(--mono); font-variant-numeric: tabular-nums; margin-top: 0.375rem; }
-  .m .val small { font-size: 0.8125rem; color: var(--mute); font-weight: 400; margin-left: 0.1875rem; }
-  .m .sub { font: 400 0.85rem var(--mono); color: var(--mute); margin-top: 0.125rem; min-height: 1.2em; }
-  .m canvas { width: 100%; height: 2.125rem; display: block; margin-top: 0.5rem; }
+  .tele { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-top: 0.8rem; }
+  .m .k { font: 600 0.68rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+  .m .val { font: 600 1.25rem/1.1 var(--mono); font-variant-numeric: tabular-nums; margin-top: 0.3rem; white-space: nowrap; }
+  .m .val small { font-size: 0.7rem; color: var(--mute); font-weight: 400; margin-left: 0.1875rem; }
+  .m .sub { font: 400 0.68rem var(--mono); color: var(--mute); margin-top: 0.1rem; min-height: 1.2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m canvas { width: 100%; height: 1.4rem; display: block; margin-top: 0.4rem; }
   .warm { color: var(--warm); } .hot { color: var(--hot); }
 
   pre { font: 400 0.7188rem/1.5 var(--mono); color: var(--mute); white-space: pre-wrap; word-break: break-all; margin-top: 0.75rem; }
 
   /* footer */
-  .dev { margin-top: auto; border-top: 1px solid var(--rule); }   /* device + model sit at the bottom */
-  .foot { padding: 1.125rem 1.625rem 1.375rem; border-bottom: 0; }
+  .dev { border-top: 1px solid var(--rule); }   /* device + model sit at the bottom */
+  .foot { padding: 0.9rem 1.625rem 1.1rem; border-bottom: 0; }
   #model { font: 500 0.9375rem/1.3 var(--display); overflow-wrap: anywhere; margin-top: 0.625rem; }
   #modelMeta { font: 400 0.7812rem var(--mono); color: var(--mute); margin-top: 0.25rem; }
-  #open { font: 400 0.8125rem var(--mono); color: var(--mute); margin-top: 0.875rem; }
+  #open { font: 400 0.8125rem var(--mono); color: var(--mute); margin-top: 0.6rem; }
   #open b { color: var(--signal); font-weight: 600; }
   .btn { margin-top: 0.875rem; font: 600 0.6875rem var(--mono); letter-spacing: .12em; text-transform: uppercase;
          background: none; color: var(--ink); border: 1px solid var(--faint); padding: 0.5625rem 0.875rem; cursor: pointer; }
@@ -146,8 +146,8 @@
     <div class="tele">
       <div class="m"><div class="k">CPU</div><div class="val" id="cpu">—</div><div class="sub" id="cpuSub"></div><canvas id="cpuG"></canvas></div>
       <div class="m"><div class="k">Temp</div><div class="val" id="temp">—</div><div class="sub" id="tempSub"></div><canvas id="tempG"></canvas></div>
-      <div class="m"><div class="k">Memory</div><div class="val" id="ram">—</div><div class="sub" id="ramSub"></div><canvas id="ramG"></canvas></div>
-      <div class="m"><div class="k">Inference</div><div class="val" id="lat">—</div><div class="sub" id="latSub"></div><canvas id="latG"></canvas></div>
+      <div class="m"><div class="k">RAM</div><div class="val" id="ram">—</div><div class="sub" id="ramSub"></div><canvas id="ramG"></canvas></div>
+      <div class="m"><div class="k">Infer</div><div class="val" id="lat">—</div><div class="sub" id="latSub"></div><canvas id="latG"></canvas></div>
     </div>
   </div>
 
@@ -212,17 +212,17 @@ function renderSystem(y, r) {
     $("cpu").innerHTML = `${y.cpu.toFixed(0)}<small>%</small>`; $("cpu").className = "val " + c;
     spark("cpuG", hist.cpu, 0, 100, colorOf(c));
   }
-  $("cpuSub").textContent = [y.cores && `${y.cores} cores`, y.cpu_mhz && `${(y.cpu_mhz / 1000).toFixed(1)} GHz`].filter(Boolean).join(" · ");
+  $("cpuSub").textContent = [y.cores && `${y.cores}×`, y.cpu_mhz && `${(y.cpu_mhz / 1000).toFixed(1)} GHz`].filter(Boolean).join("");
   if (y.temp_c != null) {
     const c = level(y.temp_c, 70, 80); push("temp", y.temp_c);
     $("temp").innerHTML = `${y.temp_c.toFixed(0)}<small>°C</small>`; $("temp").className = "val " + c;
-    $("tempSub").textContent = y.temp_c >= 80 ? "throttling likely" : y.temp_c >= 70 ? "running warm" : "normal";
+    $("tempSub").textContent = y.temp_c >= 80 ? "throttling" : y.temp_c >= 70 ? "warm" : "normal";
     spark("tempG", hist.temp, 30, 85, colorOf(c));
   } else if (y.temp_hint) { $("tempSub").textContent = "connect hardware-observe"; }
   if (y.ram != null) {
     push("ram", y.ram);
     $("ram").innerHTML = `${y.ram.toFixed(0)}<small>%</small>`;
-    $("ramSub").textContent = `${(y.ram_used_mb / 1024).toFixed(1)} of ${(y.ram_total_mb / 1024).toFixed(1)} GB`;
+    $("ramSub").textContent = `${(y.ram_used_mb / 1024).toFixed(1)}/${(y.ram_total_mb / 1024).toFixed(0)} GB`;
     spark("ramG", hist.ram, 0, 100, css("--signal"));
   }
   if (r && r.latency_ms != null) push("lat", r.latency_ms);
@@ -277,7 +277,7 @@ function render(s) {
   if (r.bounding_boxes && !r.classification) {
     const g = {};
     r.bounding_boxes.forEach(b => { const e = g[b.label] || (g[b.label] = {n: 0, v: 0}); e.n++; e.v = Math.max(e.v, b.value); });
-    rows = Object.entries(g).sort((a, b) => b[1].v - a[1].v).slice(0, 6)
+    rows = Object.entries(g).sort((a, b) => b[1].v - a[1].v).slice(0, 8)
       .map(([k, e]) => `<div class="row"><span>${esc(k)}</span><span class="n">×${e.n}</span><span class="v">${e.v.toFixed(2)}</span></div>`);
     $("count").textContent = r.bounding_boxes.length ? `${r.bounding_boxes.length} in view` : "";
     if (!r.bounding_boxes.length) caption = `nothing above ${s.threshold}`;
@@ -296,7 +296,7 @@ function render(s) {
   // inference metric
   if (r.latency_ms != null) {
     $("lat").innerHTML = `${r.latency_ms.toFixed(0)}<small>ms</small>`;
-    $("latSub").textContent = s.fps != null && mode !== "api" ? `${s.fps.toFixed(1)} results / s` : "";
+    $("latSub").textContent = s.fps != null && mode !== "api" ? `${s.fps.toFixed(1)} /s` : "";
   }
   renderSystem(s.system || {}, s.result);
 
