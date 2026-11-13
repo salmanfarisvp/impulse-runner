@@ -38,6 +38,7 @@ COMMON = os.environ.get("SNAP_COMMON", os.path.join(os.getcwd(), "data"))
 MODEL_PATH = os.path.join(COMMON, "model.eim")
 WEB_DIR = os.path.join(SNAP, "www") if "SNAP" in os.environ else os.path.join(HERE, "www")
 MAX_UPLOAD = 512 * 1024 * 1024
+BOOT_ID = secrets.token_hex(4)  # changes on every restart; the page reloads when it does
 
 # model_parameters.sensor values reported by the .eim
 SENSORS = {-1: "unknown", 1: "microphone", 2: "accelerometer", 3: "camera",
@@ -412,20 +413,40 @@ def region_mapper(region, r):
     return lambda x, y, w, h: (int(a + x * sx), int(b + y * sy), int(w * sx), int(h * sy))
 
 
+ACCENT = (110, 240, 190)   # BGR of #BEF06E
+ALERT = (90, 90, 255)
+
+
 def draw(frame, region, result, cv2):
+    fh, fw = frame.shape[:2]
+    t = max(2, fw // 320)                      # line thickness scales with the frame
+    scale = max(0.45, fw / 1280)
     kind, a, b, sx, sy = region
-    if kind == "crop":  # show the part of the frame the model actually sees
-        fh, fw = frame.shape[:2]
-        cv2.rectangle(frame, (a, b), (fw - a - 1, fh - b - 1), (90, 90, 90), 1)
-    for key, color in (("visual_anomaly_grid", (60, 60, 230)), ("bounding_boxes", (120, 220, 60))):
+    if kind == "crop":  # dim what the model doesn't see
+        cv2.rectangle(frame, (a, b), (fw - a - 1, fh - b - 1), (120, 120, 120), 1)
+    for key, color in (("visual_anomaly_grid", ALERT), ("bounding_boxes", ACCENT)):
         for box in result.get(key, []) or []:
             x, y, w, h = box["x"], box["y"], box["width"], box["height"]
             if result.get("model_type") == "constrained_object_detection" or (w <= 12 and h <= 12):
-                cv2.circle(frame, (x + w // 2, y + h // 2), 8, color, 2)
+                cx, cy = x + w // 2, y + h // 2
+                cv2.circle(frame, (cx, cy), 6 * t, color, t, cv2.LINE_AA)
+                cv2.circle(frame, (cx, cy), t, color, -1, cv2.LINE_AA)
+                x, y = cx - 6 * t, cy - 6 * t
             else:
-                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-            cv2.putText(frame, f"{box['label']} {box['value']:.2f}", (x, max(14, y - 6)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
+                # corner brackets instead of a full rectangle: reads cleaner on video
+                L = max(10, min(w, h) // 5)
+                for (px, py, dx, dy) in ((x, y, 1, 1), (x + w, y, -1, 1),
+                                         (x, y + h, 1, -1), (x + w, y + h, -1, -1)):
+                    cv2.line(frame, (px, py), (px + dx * L, py), color, t + 1, cv2.LINE_AA)
+                    cv2.line(frame, (px, py), (px, py + dy * L), color, t + 1, cv2.LINE_AA)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 1, cv2.LINE_AA)
+            text = f"{box['label']}  {box['value']:.2f}"
+            (tw, th), base = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, max(1, t - 1))
+            ty = y - 6 if y - th - 10 > 0 else y + th + 10
+            x = max(0, min(x, fw - tw - 10))   # keep the label inside the frame
+            cv2.rectangle(frame, (x, ty - th - 6), (x + tw + 10, ty + base - 2), color, -1)
+            cv2.putText(frame, text, (x + 5, ty - 3), cv2.FONT_HERSHEY_SIMPLEX, scale,
+                        (20, 20, 20), max(1, t - 1), cv2.LINE_AA)
 
 
 class MicrophoneSource(Source):
@@ -543,11 +564,24 @@ class SystemStats:
             freq = self._read("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq")
             if freq and freq.strip().isdigit():
                 out["cpu_mhz"] = round(int(freq) / 1000)
+            out["ip"] = lan_ip()
             load = self._read("/proc/loadavg")
             if load:
                 out["load"] = float(load.split()[0])
             self._cache, self._at = out, time.time()
             return out
+
+
+def lan_ip():
+    """The address other devices reach us on (the default route's source address)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))  # UDP connect: no packet is sent
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
 
 
 SYSTEM = SystemStats()
@@ -592,6 +626,8 @@ class Hub:
         s["model_path"] = MODEL_PATH
         s["target"] = EI_TARGET
         s["version"] = os.environ.get("SNAP_VERSION", "dev")
+        s["boot"] = BOOT_ID
+        s["port"] = self.settings["port"]
         s["system"] = SYSTEM.get()
         s["upload_enabled"] = bool(self.settings["upload_token"])
         return s
@@ -750,9 +786,10 @@ def make_handler(hub):
             self.send_response(code)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "no-store")
+            headers = dict(headers or {})
+            self.send_header("Cache-Control", headers.pop("Cache-Control", "no-store"))
             self.send_header("Access-Control-Allow-Origin", "*")
-            for k, v in (headers or {}).items():
+            for k, v in headers.items():
                 self.send_header(k, v)
             self.end_headers()
             self.wfile.write(body)
@@ -780,6 +817,13 @@ def make_handler(hub):
             if path in ("/", "/index.html"):
                 with open(os.path.join(WEB_DIR, "index.html"), "rb") as f:
                     self._send(200, f.read(), "text/html; charset=utf-8")
+            elif path.startswith("/fonts/") and "/.." not in path and path.endswith(".woff2"):
+                try:
+                    with open(os.path.join(WEB_DIR, path.lstrip("/")), "rb") as f:
+                        self._send(200, f.read(), "font/woff2",
+                                   {"Cache-Control": "max-age=86400"})
+                except OSError:
+                    self._send(404, {"error": "not found"})
             elif path == "/api/status":
                 self._send(200, hub.snapshot())
             elif path == "/api/model":

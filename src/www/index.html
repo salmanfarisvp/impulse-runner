@@ -5,210 +5,324 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>impulse-runner</title>
 <style>
-  :root { --bg:#0e1116; --panel:#171b22; --line:#262c36; --text:#e8ecf1; --dim:#8b95a3;
-          --accent:#3ddc84; --warn:#ffb020; --err:#ff5c5c; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 system-ui, sans-serif;
-         height:100vh; display:flex; flex-direction:column; }
-  body.kiosk { cursor:none; }
-  header { display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid var(--line); }
-  header h1 { font-size:17px; margin:0; font-weight:600; }
-  header .model { color:var(--dim); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .pill { font-size:12px; padding:3px 9px; border-radius:99px; border:1px solid var(--line); color:var(--dim); }
-  .pill.on { color:var(--accent); border-color:var(--accent); }
-  button { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px;
-           padding:7px 12px; font:inherit; cursor:pointer; }
-  button:hover { border-color:var(--dim); }
-  main { flex:1; display:grid; grid-template-columns: 1fr 340px; min-height:0; }
-  @media (max-width: 800px) { main { grid-template-columns:1fr; } }
-  #stage { display:flex; align-items:center; justify-content:center; padding:16px; min-height:0; position:relative; }
-  #video { max-width:100%; max-height:100%; border-radius:10px; background:#000; display:none; }
-  #big { text-align:center; display:none; }
-  #big .label { font-size:clamp(40px, 9vw, 110px); font-weight:700; letter-spacing:-.02em; }
-  #big .conf { font-size:22px; color:var(--dim); margin-top:6px; }
-  #meter { width:min(420px, 80vw); height:8px; background:var(--line); border-radius:4px; margin:28px auto 0; overflow:hidden; }
-  #meter div { height:100%; width:0; background:var(--accent); transition:width .1s; }
-  #msg { max-width:560px; text-align:center; color:var(--dim); padding:20px; }
-  #msg.error { color:var(--err); }
-  aside { border-left:1px solid var(--line); padding:18px; overflow:auto; display:flex; flex-direction:column; gap:18px; }
-  @media (max-width: 800px) { aside { border-left:0; border-top:1px solid var(--line); } }
-  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 8px; font-weight:600; }
-  .top { font-size:30px; font-weight:700; }
-  .top small { font-size:16px; color:var(--dim); font-weight:400; margin-left:6px; }
-  .bar { margin:6px 0; }
-  .bar .row { display:flex; justify-content:space-between; font-size:14px; }
-  .bar .track { height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin-top:3px; }
-  .bar .fill { height:100%; background:var(--accent); }
-  .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .stat { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:9px 11px; }
-  .stat b { display:block; font-size:19px; }
-  .stat span { font-size:12px; color:var(--dim); }
-  .stat .track { height:4px; background:var(--line); border-radius:2px; overflow:hidden; margin-top:6px; }
-  .stat .fill { height:100%; width:0; background:var(--accent); transition:width .4s; }
-  .stat .fill.hot { background:var(--warn); } .stat .fill.crit { background:var(--err); }
-  code, pre { font:12.5px ui-monospace, Menlo, monospace; }
-  pre { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; overflow:auto; white-space:pre-wrap; word-break:break-all; margin:0; }
-  dialog { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:12px; width:min(480px, 92vw); }
-  dialog::backdrop { background:rgba(0,0,0,.6); }
-  dialog input { width:100%; padding:8px; margin:6px 0 12px; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:6px; font:inherit; }
-  .drop { border:2px dashed var(--line); border-radius:10px; padding:26px; text-align:center; color:var(--dim); margin-bottom:12px; }
-  .drop.over { border-color:var(--accent); color:var(--text); }
-  .row-end { display:flex; justify-content:flex-end; gap:8px; }
-  #upmsg { min-height:1.4em; font-size:14px; }
-  .kiosk #change { display:none; }
+  @font-face { font-family: "Grotesk"; font-weight: 500; src: url(/fonts/space-grotesk-latin-500-normal.woff2) format("woff2"); }
+  @font-face { font-family: "Grotesk"; font-weight: 700; src: url(/fonts/space-grotesk-latin-700-normal.woff2) format("woff2"); }
+  @font-face { font-family: "Mono"; font-weight: 400; src: url(/fonts/jetbrains-mono-latin-400-normal.woff2) format("woff2"); }
+  @font-face { font-family: "Mono"; font-weight: 600; src: url(/fonts/jetbrains-mono-latin-600-normal.woff2) format("woff2"); }
+
+  :root {
+    --void: #050607;      /* behind the video */
+    --rail: #0e1012;
+    --rule: #1f2327;
+    --ink: #eef1ec;
+    --mute: #7d857f;
+    --faint: #3a4140;
+    --signal: #bef06e;    /* one accent, also used for boxes on the video */
+    --warm: #ffb547;
+    --hot: #ff5d4f;
+    --display: "Grotesk", "DejaVu Sans", system-ui, sans-serif;
+    --mono: "Mono", "DejaVu Sans Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { font-size: clamp(16px, 1.25vw, 28px); }
+  html, body { height: 100%; }
+  body { background: var(--void); color: var(--ink); font: 0.9375rem/1.35 var(--display);
+         display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 30vw, 680px); overflow: hidden; }
+  body.kiosk { cursor: none; }
+  @media (max-width: 820px) { body { grid-template-columns: 1fr; grid-template-rows: 56vh auto; overflow: auto; } }
+
+  /* ---------- stage ---------- */
+  #stage { position: relative; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  #video { width: 100%; height: 100%; object-fit: contain; display: none; }
+  #big { display: none; text-align: center; padding: 4vw; }
+  #bigLabel { font: 700 clamp(56px, 11vw, 200px)/.9 var(--display); letter-spacing: -.045em; }
+  #bigConf { font: 400 clamp(18px, 2vw, 30px) var(--mono); color: var(--mute); margin-top: 2.2vh; }
+  #level { display: flex; gap: 0.25rem; justify-content: center; margin-top: 5vh; height: 2.875rem; align-items: center; }
+  #level i { width: 0.375rem; border-radius: 0.1875rem; background: var(--faint); height: 0.375rem; transition: height .12s, background .12s; }
+  #msg { position: absolute; inset: auto 0 0 0; padding: 1.125rem 1.5rem; font: 400 0.875rem var(--mono);
+         color: var(--mute); background: linear-gradient(transparent, rgba(0,0,0,.85)); display: none; }
+  #msg.error { color: var(--hot); }
+  #msg.center { inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; background: none; padding: 10%; font-size: 1rem; }
+
+  /* ---------- rail ---------- */
+  aside { background: var(--rail); border-left: 1px solid var(--rule); display: flex; flex-direction: column;
+          min-height: 0; overflow: auto; }
+  @media (max-width: 820px) { aside { border-left: 0; border-top: 1px solid var(--rule); } }
+  .sec { padding: 1.25rem 1.625rem; border-bottom: 1px solid var(--rule); }
+  .eyebrow { font: 600 0.8rem/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute);
+             display: flex; justify-content: space-between; gap: 0.625rem; }
+
+  .brand { padding: 1rem 1.625rem; display: flex; align-items: center; gap: 0.625rem; border-bottom: 1px solid var(--rule);
+           font: 600 0.8rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+  .brand b { color: var(--ink); font-weight: 600; }
+  .brand .ver { margin-left: auto; color: var(--mute); font-weight: 400; }
+  .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--faint); flex: none; }
+  .dot.live { background: var(--signal); box-shadow: 0 0 0 0 rgba(190,240,110,.6); animation: pulse 2s infinite; }
+  .dot.err { background: var(--hot); }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 0.5rem rgba(190,240,110,0); } 100% { box-shadow: 0 0 0 0 rgba(190,240,110,0); } }
+
+  /* hero */
+  .hero { padding: 1.625rem 1.625rem 1.5rem; }
+  #top { font: 700 3.6rem/.95 var(--display); letter-spacing: -.035em; margin-top: 0.9rem;
+         overflow-wrap: anywhere; min-height: 1em; }
+  #top.none { color: var(--faint); }
+  .conf { display: flex; align-items: center; gap: 0.875rem; margin-top: 1rem; }
+  #conf { font: 600 1.625rem var(--mono); font-variant-numeric: tabular-nums; min-width: 3.2ch; }
+  .ticks { flex: 1; display: grid; grid-template-columns: repeat(20, 1fr); gap: 0.1875rem; height: 0.875rem; }
+  .ticks i { background: var(--rule); border-radius: 1px; }
+  .ticks i.on { background: var(--signal); }
+  #caption { font: 400 0.8125rem var(--mono); color: var(--mute); margin-top: 0.75rem; min-height: 1.3em; }
+
+  /* object / score list */
+  .list { margin-top: 0.75rem; }
+  .row { display: grid; grid-template-columns: 1fr auto auto; gap: 0.875rem; align-items: baseline;
+         padding: 0.5rem 0; border-top: 1px solid var(--rule); font-size: 1.062rem; }
+  .row:first-child { border-top: 0; }
+  .row .n { font: 400 0.75rem var(--mono); color: var(--mute); }
+  .row .v { font: 600 0.9375rem var(--mono); font-variant-numeric: tabular-nums; }
+  .row .bar { grid-column: 1 / -1; height: 0.125rem; background: var(--rule); margin-top: -0.125rem; }
+  .row .bar span { display: block; height: 100%; background: var(--signal); }
+
+  /* telemetry */
+  .tele { display: grid; grid-template-columns: 1fr 1fr; gap: 1.125rem 1.375rem; margin-top: 1rem; }
+  .m .k { font: 600 0.8rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+  .m .val { font: 600 1.688rem/1.1 var(--mono); font-variant-numeric: tabular-nums; margin-top: 0.375rem; }
+  .m .val small { font-size: 0.8125rem; color: var(--mute); font-weight: 400; margin-left: 0.1875rem; }
+  .m .sub { font: 400 0.85rem var(--mono); color: var(--mute); margin-top: 0.125rem; min-height: 1.2em; }
+  .m canvas { width: 100%; height: 2.125rem; display: block; margin-top: 0.5rem; }
+  .warm { color: var(--warm); } .hot { color: var(--hot); }
+
+  pre { font: 400 0.7188rem/1.5 var(--mono); color: var(--mute); white-space: pre-wrap; word-break: break-all; margin-top: 0.75rem; }
+
+  /* footer */
+  .dev { margin-top: auto; border-top: 1px solid var(--rule); }   /* device + model sit at the bottom */
+  .foot { padding: 1.125rem 1.625rem 1.375rem; border-bottom: 0; }
+  #model { font: 500 0.9375rem/1.3 var(--display); overflow-wrap: anywhere; margin-top: 0.625rem; }
+  #modelMeta { font: 400 0.7812rem var(--mono); color: var(--mute); margin-top: 0.25rem; }
+  #open { font: 400 0.8125rem var(--mono); color: var(--mute); margin-top: 0.875rem; }
+  #open b { color: var(--signal); font-weight: 600; }
+  .btn { margin-top: 0.875rem; font: 600 0.6875rem var(--mono); letter-spacing: .12em; text-transform: uppercase;
+         background: none; color: var(--ink); border: 1px solid var(--faint); padding: 0.5625rem 0.875rem; cursor: pointer; }
+  .btn:hover { border-color: var(--signal); color: var(--signal); }
+  .kiosk .btn { display: none; }
+
+  /* upload dialog */
+  dialog { background: var(--rail); color: var(--ink); border: 1px solid var(--rule); width: min(28.75rem, 92vw); padding: 1.625rem; }
+  dialog::backdrop { background: rgba(0,0,0,.7); }
+  dialog h3 { font: 700 1.5rem var(--display); letter-spacing: -.02em; }
+  dialog p { color: var(--mute); margin: 0.5rem 0 1.125rem; font-size: 0.875rem; }
+  .drop { border: 1px dashed var(--faint); padding: 1.625rem; text-align: center; color: var(--mute); font: 400 0.8125rem var(--mono); }
+  .drop.over { border-color: var(--signal); color: var(--ink); }
+  .drop label { color: var(--signal); cursor: pointer; }
+  dialog .k { display: block; margin-top: 1.125rem; font: 600 0.625rem var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+  dialog input[type=text] { width: 100%; margin-top: 0.5rem; padding: 0.625rem; background: var(--void); color: var(--ink);
+         border: 1px solid var(--rule); font: 400 0.8125rem var(--mono); }
+  #upmsg { font: 400 0.7812rem var(--mono); color: var(--mute); min-height: 1.4em; margin-top: 0.875rem; }
+  .actions { display: flex; justify-content: flex-end; gap: 0.625rem; }
+  .kiosk dialog .btn { display: inline-block; }
 </style>
 </head>
 <body>
-<header>
-  <h1>impulse-runner <span id="ver" style="font-weight:400;color:var(--dim);font-size:13px"></span></h1>
-  <span class="model" id="model">–</span>
-  <span class="pill" id="mode">–</span>
-  <button id="change">Load model</button>
-</header>
-<main>
-  <section id="stage">
-    <canvas id="video"></canvas>
-    <div id="big"><div class="label" id="bigLabel">–</div><div class="conf" id="bigConf"></div>
-      <div id="meter"><div></div></div></div>
-    <div id="msg">Connecting…</div>
-  </section>
-  <aside>
-    <div><h2>Detected</h2><div class="top" id="top">–</div></div>
-    <div id="barsBox"><h2 id="barsTitle">Scores</h2><div id="bars"></div></div>
-    <div><h2 id="sysTitle">System</h2>
-    <div class="stats">
-      <div class="stat"><b id="cpu">–</b><span id="cpuSub">CPU</span><div class="track"><div class="fill" id="cpuBar"></div></div></div>
-      <div class="stat"><b id="ram">–</b><span id="ramSub">RAM</span><div class="track"><div class="fill" id="ramBar"></div></div></div>
-      <div class="stat"><b id="temp">–</b><span id="tempSub">CPU temp</span><div class="track"><div class="fill" id="tempBar"></div></div></div>
-      <div class="stat"><b id="load">–</b><span id="loadSub">load (1 min)</span></div>
-    </div></div>
-    <div><h2>Model</h2>
-    <div class="stats">
-      <div class="stat"><b id="fps">–</b><span>results / s</span></div>
-      <div class="stat"><b id="lat">–</b><span>ms per inference</span></div>
-      <div class="stat"><b id="thr">–</b><span>threshold</span></div>
-      <div class="stat"><b id="anom">–</b><span>anomaly</span></div>
-    </div></div>
-    <div id="apiBox" style="display:none"><h2>Send data</h2><pre id="apiHelp"></pre></div>
-  </aside>
-</main>
+<section id="stage">
+  <canvas id="video"></canvas>
+  <div id="big"><div id="bigLabel">–</div><div id="bigConf"></div><div id="level"></div></div>
+  <div id="msg" class="center">Connecting…</div>
+</section>
+
+<aside>
+  <div class="brand"><span class="dot" id="dot"></span><b>impulse-runner</b><span id="mode"></span><span class="ver" id="ver"></span></div>
+
+  <div class="sec hero">
+    <div class="eyebrow"><span id="heroTitle">Detecting</span><span id="count"></span></div>
+    <div id="top" class="none">—</div>
+    <div class="conf"><span id="conf">—</span><div class="ticks" id="ticks"></div></div>
+    <div id="caption"></div>
+    <div class="list" id="list"></div>
+    <pre id="apiHelp" hidden></pre>
+  </div>
+
+  <div class="sec dev">
+    <div class="eyebrow"><span>Device</span><span id="board"></span></div>
+    <div class="tele">
+      <div class="m"><div class="k">CPU</div><div class="val" id="cpu">—</div><div class="sub" id="cpuSub"></div><canvas id="cpuG"></canvas></div>
+      <div class="m"><div class="k">Temp</div><div class="val" id="temp">—</div><div class="sub" id="tempSub"></div><canvas id="tempG"></canvas></div>
+      <div class="m"><div class="k">Memory</div><div class="val" id="ram">—</div><div class="sub" id="ramSub"></div><canvas id="ramG"></canvas></div>
+      <div class="m"><div class="k">Inference</div><div class="val" id="lat">—</div><div class="sub" id="latSub"></div><canvas id="latG"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sec foot">
+    <div class="eyebrow"><span>Model</span><span id="thr"></span></div>
+    <div id="model">No model loaded</div>
+    <div id="modelMeta"></div>
+    <div id="open"></div>
+    <button class="btn" id="change">Load model</button>
+  </div>
+</aside>
 
 <dialog id="dlg">
-  <h3 style="margin-top:0">Load a model</h3>
-  <p style="color:var(--dim);margin-top:0">Any Edge Impulse project, exported as
-    <b id="target">Linux</b> (<code>.eim</code>).</p>
-  <div class="drop" id="drop">Drop a .eim here or <label style="color:var(--accent);cursor:pointer">
-    choose a file<input type="file" id="file" accept=".eim" hidden></label><div id="fname"></div></div>
-  <label>Upload token <span style="color:var(--dim)">(<code>sudo snap get impulse-runner upload-token</code>)</span>
-    <input id="token" autocomplete="off"></label>
+  <h3>Load a model</h3>
+  <p>Any Edge Impulse project, exported as <b id="target">Linux</b> (<code>.eim</code>).</p>
+  <div class="drop" id="drop">Drop a .eim here or <label>choose a file<input type="file" id="file" accept=".eim" hidden></label><div id="fname"></div></div>
+  <label class="k">Upload token · <code>sudo snap get impulse-runner upload-token</code>
+    <input type="text" id="token" autocomplete="off" spellcheck="false"></label>
   <div id="upmsg"></div>
-  <div class="row-end"><button id="cancel">Cancel</button><button id="send">Upload</button></div>
+  <div class="actions"><button class="btn" id="cancel">Cancel</button><button class="btn" id="send">Upload</button></div>
 </dialog>
 
 <script>
 const $ = id => document.getElementById(id);
 const kiosk = new URLSearchParams(location.search).has("kiosk");
 if (kiosk) document.body.classList.add("kiosk");
-let mode = null, frameLoop = false;
+let mode = null, frameLoop = false, boot = null;
 const canvas = $("video"), ctx = canvas.getContext("2d");
 
-function show(el, on) { el.style.display = on ? "block" : "none"; }
-function pct(v) { return (v * 100).toFixed(0) + "%"; }
+$("ticks").innerHTML = "<i></i>".repeat(20);
+$("level").innerHTML = "<i></i>".repeat(24);
+const show = (el, on, how = "block") => el.style.display = on ? how : "none";
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// ---- sparklines: the last ~40 s of each metric ----
+const N = 130, hist = {cpu: [], temp: [], ram: [], lat: []};
+function push(k, v) { if (v == null || isNaN(v)) return; const a = hist[k]; a.push(v); if (a.length > N) a.shift(); }
+function spark(id, data, lo, hi, color) {
+  const c = $(id), r = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (!w) return;
+  if (c.width !== Math.round(w * r)) { c.width = Math.round(w * r); c.height = Math.round(h * r); }
+  const g = c.getContext("2d");
+  g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, w, h);
+  g.strokeStyle = css("--rule"); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0, h - .5); g.lineTo(w, h - .5); g.stroke();
+  if (data.length < 2) return;
+  const max = Math.max(hi, ...data), min = Math.min(lo, ...data), span = (max - min) || 1;
+  const x = i => w - (data.length - 1 - i) * (w / (N - 1)), y = v => h - 2 - (v - min) / span * (h - 4);
+  g.beginPath(); data.forEach((v, i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
+  g.strokeStyle = color; g.lineWidth = 1.5; g.stroke();
+  g.lineTo(x(data.length - 1), h); g.lineTo(x(0), h); g.closePath();
+  g.globalAlpha = .13; g.fillStyle = color; g.fill(); g.globalAlpha = 1;
+}
+const level = (v, warn, crit) => v >= crit ? "hot" : v >= warn ? "warm" : "";
+const colorOf = cls => css(cls === "hot" ? "--hot" : cls === "warm" ? "--warm" : "--signal");
+
+function renderSystem(y, r) {
+  $("board").textContent = (y.board || "").replace(/ Rev [\d.]+$/, "").replace(" Model ", " ");
+  if (y.cpu != null) {
+    const c = level(y.cpu, 70, 90); push("cpu", y.cpu);
+    $("cpu").innerHTML = `${y.cpu.toFixed(0)}<small>%</small>`; $("cpu").className = "val " + c;
+    spark("cpuG", hist.cpu, 0, 100, colorOf(c));
+  }
+  $("cpuSub").textContent = [y.cores && `${y.cores} cores`, y.cpu_mhz && `${(y.cpu_mhz / 1000).toFixed(1)} GHz`].filter(Boolean).join(" · ");
+  if (y.temp_c != null) {
+    const c = level(y.temp_c, 70, 80); push("temp", y.temp_c);
+    $("temp").innerHTML = `${y.temp_c.toFixed(0)}<small>°C</small>`; $("temp").className = "val " + c;
+    $("tempSub").textContent = y.temp_c >= 80 ? "throttling likely" : y.temp_c >= 70 ? "running warm" : "normal";
+    spark("tempG", hist.temp, 30, 85, colorOf(c));
+  } else if (y.temp_hint) { $("tempSub").textContent = "connect hardware-observe"; }
+  if (y.ram != null) {
+    push("ram", y.ram);
+    $("ram").innerHTML = `${y.ram.toFixed(0)}<small>%</small>`;
+    $("ramSub").textContent = `${(y.ram_used_mb / 1024).toFixed(1)} of ${(y.ram_total_mb / 1024).toFixed(1)} GB`;
+    spark("ramG", hist.ram, 0, 100, css("--signal"));
+  }
+  if (r && r.latency_ms != null) push("lat", r.latency_ms);
+  spark("latG", hist.lat, 0, 10, css("--signal"));
+}
 
 function render(s) {
-  const m = s.model;
-  $("model").textContent = m ? `${m.name}${m.version ? " v" + m.version : ""} · ${m.model_type.replace(/_/g, " ")}` : "no model";
-  $("mode").textContent = s.mode || s.state;
-  $("mode").className = "pill" + (s.state === "ok" ? " on" : "");
-  $("thr").textContent = s.threshold;
-  $("target").textContent = s.target;
-  $("ver").textContent = s.version || "";
+  // Server restarted (new version or settings): reload so a kiosk never runs a stale page.
+  if (s.boot) { if (boot && s.boot !== boot) { location.reload(); return; } boot = s.boot; }
+  const m = s.model, r = s.result || {};
   mode = s.mode;
-
-  renderSystem(s.system || {});
-  const r = s.result || {};
-  const msg = $("msg");
-  if (s.message && (!s.result || s.state !== "ok")) {
-    msg.textContent = s.message; msg.className = s.state === "error" ? "error" : ""; show(msg, true);
-  } else show(msg, false);
+  $("ver").textContent = s.version || "";
+  $("mode").textContent = mode ? "· " + mode : "";
+  $("dot").className = "dot " + (s.state === "ok" ? "live" : s.state === "error" ? "err" : "");
+  $("target").textContent = s.target;
+  $("thr").textContent = s.threshold != null ? `threshold ${s.threshold}` : "";
 
   // stage
+  const live = !!s.updated && s.state === "ok";
   show(canvas, mode === "camera" && !!s.updated);
   show($("big"), (mode === "microphone" || mode === "api") && !!m);
   if (mode === "camera" && !frameLoop) { frameLoop = true; nextFrame(-1); }
+  const msg = $("msg");
+  if (s.message && !(live && s.result)) {
+    const center = canvas.style.display !== "block";
+    msg.textContent = s.message;
+    msg.className = (s.state === "error" ? "error " : "") + (center ? "center" : "");
+    show(msg, true, center ? "flex" : "block");
+  } else show(msg, false);
 
+  // hero
   const top = r.top;
-  $("top").innerHTML = top ? `${top.label}<small>${pct(top.value)}</small>` : "–";
-  $("bigLabel").textContent = top ? top.label : (r.classification ? "…" : "waiting");
-  $("bigConf").textContent = top ? pct(top.value) : "";
-  $("meter").firstElementChild.style.width = Math.min(100, (s.level || 0) * 400) + "%";
-  show($("meter"), mode === "microphone");
+  $("heroTitle").textContent = mode === "microphone" ? "Hearing" : mode === "api" ? "Classifying" : "Detecting";
+  $("top").textContent = top ? top.label : "—";
+  $("top").className = top ? "" : "none";
+  $("conf").textContent = top ? top.value.toFixed(2) : "—";
+  const lit = top ? Math.round(top.value * 20) : 0;
+  [...$("ticks").children].forEach((t, i) => t.className = i < lit ? "on" : "");
+  $("bigLabel").textContent = top ? top.label : (m ? (mode === "microphone" ? "listening" : "waiting") : "");
+  $("bigLabel").style.color = top ? "" : "var(--faint)";
+  $("bigConf").textContent = top ? top.value.toFixed(2) : "";
+  const lv = Math.min(1, (s.level || 0) * 5);
+  [...$("level").children].forEach((t, i) => {
+    const on = i / 24 < lv;
+    t.style.height = on ? (8 + 38 * Math.sin(Math.PI * i / 23) * lv) + "px" : "6px";
+    t.style.background = on ? "var(--signal)" : "";
+  });
+  show($("level"), mode === "microphone", "flex");
 
-  // scores: classification, or counts of boxes
-  let rows = [];
-  if (r.classification) {
-    rows = Object.entries(r.classification).filter(([k]) => k !== "anomaly")
-      .sort((a, b) => b[1] - a[1]).slice(0, 8);
-    $("barsTitle").textContent = "Scores";
-  } else if (r.bounding_boxes) {
-    const best = {};
-    r.bounding_boxes.forEach(b => best[b.label] = Math.max(best[b.label] || 0, b.value));
-    rows = Object.entries(best).sort((a, b) => b[1] - a[1]).slice(0, 8);
-    $("barsTitle").textContent = `Objects (${r.bounding_boxes.length})`;
-  }
-  $("bars").innerHTML = rows.length ? rows.map(([k, v]) =>
-    `<div class="bar"><div class="row"><span>${esc(k)}</span><span>${pct(v)}</span></div>
-     <div class="track"><div class="fill" style="width:${v * 100}%"></div></div></div>`).join("")
-    : `<span style="color:var(--dim)">nothing above threshold</span>`;
-
-  $("fps").textContent = s.fps != null && mode !== "api" ? s.fps : "–";
-  $("lat").textContent = r.latency_ms != null ? r.latency_ms : "–";
+  // list: objects (detection) or scores (classification)
+  let rows = [], caption = "";
+  if (r.bounding_boxes && !r.classification) {
+    const g = {};
+    r.bounding_boxes.forEach(b => { const e = g[b.label] || (g[b.label] = {n: 0, v: 0}); e.n++; e.v = Math.max(e.v, b.value); });
+    rows = Object.entries(g).sort((a, b) => b[1].v - a[1].v).slice(0, 6)
+      .map(([k, e]) => `<div class="row"><span>${esc(k)}</span><span class="n">×${e.n}</span><span class="v">${e.v.toFixed(2)}</span></div>`);
+    $("count").textContent = r.bounding_boxes.length ? `${r.bounding_boxes.length} in view` : "";
+    if (!r.bounding_boxes.length) caption = `nothing above ${s.threshold}`;
+  } else if (r.classification) {
+    rows = Object.entries(r.classification).filter(([k]) => k !== "anomaly").sort((a, b) => b[1] - a[1]).slice(0, 5)
+      .map(([k, v]) => `<div class="row"><span>${esc(k)}</span><span></span><span class="v">${v.toFixed(2)}</span>
+        <div class="bar"><span style="width:${(v * 100).toFixed(1)}%"></span></div></div>`);
+    $("count").textContent = "";
+    if (!top) caption = `no class above ${s.threshold}`;
+  } else $("count").textContent = "";
   const a = r.anomaly ?? r.visual_anomaly_max;
-  $("anom").textContent = a != null ? a.toFixed(2) : "–";
+  if (a != null) caption = (caption ? caption + " · " : "") + `anomaly ${a.toFixed(2)}`;
+  $("caption").textContent = caption || (m && !s.result ? "waiting for data" : "");
+  $("list").innerHTML = rows.join("");
 
-  show($("apiBox"), mode === "api" && !kiosk && !!m);
-  if (mode === "api" && m) {
-    const host = location.host;
-    $("apiHelp").textContent =
-`# whole window (${m.input_features_count} values${m.axis_count > 1 ? ", " + m.axis_count + " axes interleaved" : ""}):
-curl -X POST http://${host}/api/classify \\
-  -d '{"features": [ ... ]}'
-
-# or stream readings; it classifies each time
-# the ${m.input_features_count}-value window fills:
-curl -X POST http://${host}/api/data \\
-  -d '{"values": [[${Array(m.axis_count).fill(0).map((_, i) => "a" + i).join(", ")}], ...]}'`;
+  // inference metric
+  if (r.latency_ms != null) {
+    $("lat").innerHTML = `${r.latency_ms.toFixed(0)}<small>ms</small>`;
+    $("latSub").textContent = s.fps != null && mode !== "api" ? `${s.fps.toFixed(1)} results / s` : "";
   }
-}
+  renderSystem(s.system || {}, s.result);
 
-function meter(id, value, warn, crit) {
-  const el = $(id);
-  el.style.width = Math.max(0, Math.min(100, value)) + "%";
-  el.className = "fill" + (value >= crit ? " crit" : value >= warn ? " hot" : "");
-}
-function renderSystem(y) {
-  $("sysTitle").textContent = y.board ? "System · " + y.board.replace(/ Rev [\d.]+$/, "") : "System";
-  if (y.cpu != null) { $("cpu").textContent = y.cpu.toFixed(0) + "%"; meter("cpuBar", y.cpu, 70, 90); }
-  $("cpuSub").textContent = "CPU" + (y.cores ? ` · ${y.cores}×` : "") + (y.cpu_mhz ? `${y.cores ? "" : " · "}${(y.cpu_mhz / 1000).toFixed(1)} GHz` : "");
-  if (y.ram != null) {
-    $("ram").textContent = y.ram.toFixed(0) + "%"; meter("ramBar", y.ram, 75, 90);
-    $("ramSub").textContent = `RAM · ${(y.ram_used_mb / 1024).toFixed(1)} / ${(y.ram_total_mb / 1024).toFixed(1)} GB`;
+  // api help
+  const help = $("apiHelp");
+  help.hidden = !(mode === "api" && m && !kiosk);
+  if (!help.hidden) {
+    help.textContent = `POST /api/data   {"values": [[${Array(m.axis_count).fill(0).map((_, i) => "a" + i).join(", ")}], ...]}\n` +
+      `POST /api/classify   {"features": [${m.input_features_count} values]}`;
   }
-  if (y.temp_c != null) { $("temp").textContent = y.temp_c.toFixed(0) + "°C"; meter("tempBar", y.temp_c, 70, 80); $("tempSub").textContent = "CPU temp"; }
-  else if (y.temp_hint) { $("temp").textContent = "–"; $("tempSub").textContent = "connect hardware-observe"; $("tempSub").title = y.temp_hint; }
-  $("load").textContent = y.load != null ? y.load.toFixed(2) : "–";
-}
 
-function esc(t) { return String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+  // footer
+  $("model").textContent = m ? `${m.name}${m.version ? "  v" + m.version : ""}` : "No model loaded";
+  $("modelMeta").textContent = m ? [m.model_type.replace(/_/g, " "), m.sensor, m.labels.length + " labels",
+    m.image ? `${m.image.width}×${m.image.height}` : m.frequency ? `${m.frequency} Hz` : ""].filter(Boolean).join(" · ") : "";
+  const ip = s.system && s.system.ip;
+  $("open").innerHTML = ip ? `Open on your phone&nbsp; <b>${ip}${s.port && s.port !== 80 ? ":" + s.port : ""}</b>` : "";
+}
 
 async function poll() {
   try { render(await (await fetch("/api/status", {cache: "no-store"})).json()); }
-  catch (e) { $("msg").textContent = "Can't reach impulse-runner…"; show($("msg"), true); }
-  setTimeout(poll, mode === "camera" ? 300 : 150);
+  catch (e) { const m = $("msg"); m.textContent = "Can't reach impulse-runner…"; m.className = "error center"; show(m, true, "flex"); }
+  setTimeout(poll, 300);
 }
 
-// Pull one JPEG at a time and paint it onto a canvas: smooth in WebKit kiosks,
-// where an MJPEG <img> flickers.
+// One JPEG at a time onto a canvas: smooth in WebKit kiosks, where an MJPEG <img> flickers.
 async function nextFrame(seq) {
   if (mode !== "camera") { frameLoop = false; return; }
   try {
@@ -216,17 +330,14 @@ async function nextFrame(seq) {
     if (!res.ok) throw 0;
     const n = +res.headers.get("X-Frame-Seq");
     const url = URL.createObjectURL(await res.blob());
-    const img = new Image();
-    img.src = url;
-    await img.decode();
-    URL.revokeObjectURL(url);
+    const img = new Image(); img.src = url; await img.decode(); URL.revokeObjectURL(url);
     if (canvas.width !== img.naturalWidth) { canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; }
     ctx.drawImage(img, 0, 0);
     requestAnimationFrame(() => nextFrame(n));
   } catch (e) { setTimeout(() => nextFrame(seq), 1000); }
 }
 
-// upload
+// ---- upload ----
 const dlg = $("dlg"); let file = null;
 try { $("token").value = localStorage.getItem("ir-token") || ""; } catch (e) {}
 $("change").onclick = () => { $("upmsg").textContent = ""; dlg.showModal(); };
