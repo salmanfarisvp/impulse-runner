@@ -57,7 +57,7 @@
 </head>
 <body>
 <header>
-  <h1>impulse-runner</h1>
+  <h1>impulse-runner <span id="ver" style="font-weight:400;color:var(--dim);font-size:13px"></span></h1>
   <span class="model" id="model">–</span>
   <span class="pill" id="mode">–</span>
   <button id="change">Load model</button>
@@ -111,6 +111,7 @@ function render(s) {
   $("mode").className = "pill" + (s.state === "ok" ? " on" : "");
   $("thr").textContent = s.threshold;
   $("target").textContent = s.target;
+  $("ver").textContent = s.version || "";
   mode = s.mode;
 
   const r = s.result || {};

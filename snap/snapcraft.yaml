@@ -1,6 +1,7 @@
 name: impulse-runner
 base: core24
-version: '0.1.0'
+# CalVer: YY.MM.N (N counts releases within the month, from 0)
+version: '26.11.0'
 title: Impulse Runner
 contact: https://github.com/salmanfarisvp/impulse-runner/issues
 summary: Run any Edge Impulse model (.eim) on Ubuntu Core, plug and play

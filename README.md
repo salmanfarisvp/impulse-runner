@@ -45,6 +45,7 @@ can show full screen on an attached display.
 - [How it works](#how-it-works)
 - [Building from source](#building-from-source)
 - [Releasing](#releasing)
+- [Publishing to the Snap Store](#publishing-to-the-snap-store)
 
 ---
 
@@ -368,22 +369,87 @@ Use it to try the pipeline without a real model.
 
 ## Releasing
 
-GitHub Actions builds amd64 and arm64 snaps on every push. Pushing a `v*` tag uploads both
-to the Snap Store (channel from the `SNAP_CHANNEL` repo variable, default `edge`) and
-attaches them to a GitHub Release.
+Versions use **CalVer `YY.MM.N`**: year, month, and a counter that starts at `0` each
+month. `26.11.0` is the first release of November 2026, and `26.11.1` the next one that
+month. A December release is `26.12.0`.
 
-One-time setup:
+GitHub Actions builds amd64 and arm64 snaps on every push and pull request. To release:
 
 ```bash
-snapcraft login
-snapcraft register impulse-runner
-snapcraft export-login --snaps=impulse-runner --acls=package_access,package_push,package_update,package_release - 
-# paste the output into the repo secret SNAPCRAFT_STORE_CREDENTIALS
+# 1. bump the version in snap/snapcraft.yaml, e.g. version: '26.11.1'
+git commit -am "Release 26.11.1"
+# 2. tag it with the same version, prefixed with v
+git tag v26.11.1
+git push origin main v26.11.1
+```
+
+The tag build checks the tag matches `snapcraft.yaml`, uploads both snaps to the Snap Store
+(channel from the `SNAP_CHANNEL` repo variable, default `edge`), and attaches them to a
+GitHub Release.
+
+Promote a tested release to more users from the Store dashboard, or with:
+
+```bash
+snapcraft release impulse-runner <revision> beta     # then candidate, then stable
+```
+
+One-time Store setup (see [Publishing to the Snap Store](#publishing-to-the-snap-store)):
+
+```bash
+snapcraft export-login --snaps=impulse-runner \
+  --acls=package_access,package_push,package_update,package_release ci-creds
+gh secret set SNAPCRAFT_STORE_CREDENTIALS < ci-creds && rm ci-creds
 ```
 
 The `camera` and `alsa` interfaces aren't auto-connected for store snaps. To have them
 connect on install, request auto-connection on the
 [Snapcraft forum](https://forum.snapcraft.io/c/store-requests/19).
+
+## Publishing to the Snap Store
+
+The first release, from zero:
+
+1. **Create a developer account.** Sign in at [snapcraft.io](https://snapcraft.io) with
+   an Ubuntu One account and accept the developer terms
+   ([dashboard](https://dashboard.snapcraft.io)).
+2. **Log in from a terminal** that has snapcraft (on a Mac, inside the Multipass VM):
+
+   ```bash
+   snapcraft export-login ~/store-creds          # asks for email, password, 2FA
+   export SNAPCRAFT_STORE_CREDENTIALS=$(cat ~/store-creds)
+   snapcraft whoami
+   ```
+
+   (`snapcraft login` works too where a desktop keyring exists. Headless VMs don't have
+   one, so use the exported credentials.)
+3. **Register the name**, once: `snapcraft register impulse-runner`
+4. **Upload** a build to the `edge` channel:
+
+   ```bash
+   snapcraft upload --release=edge impulse-runner_26.11.0_arm64.snap
+   snapcraft upload --release=edge impulse-runner_26.11.0_amd64.snap
+   ```
+
+   Or let CI do it: set the `SNAPCRAFT_STORE_CREDENTIALS` secret (see
+   [Releasing](#releasing)) and push a tag.
+   Strictly confined snaps that only use standard interfaces pass the automated review
+   in minutes. Anyone can then run `sudo snap install impulse-runner --edge`.
+5. **Fill in the listing** at `https://snapcraft.io/impulse-runner/listing`: icon,
+   screenshots, category (*Internet of Things*, *Development*), and links.
+6. **Test, then promote**: `edge` → `beta` → `candidate` → `stable`. Once a revision is on
+   `stable`, a plain `sudo snap install impulse-runner` works, and every device refreshes
+   to new releases automatically.
+7. **Ask for auto-connections**: post in
+   [store-requests](https://forum.snapcraft.io/c/store-requests/19) asking for `camera`
+   and `alsa` to auto-connect, so users can skip `snap connect`.
+
+Channels:
+
+| Channel | Use |
+| --- | --- |
+| `edge` | Every tagged build. For testing |
+| `beta` / `candidate` | Wider testing, release candidates |
+| `stable` | What `snap install impulse-runner` gives everyone |
 
 ## License
 

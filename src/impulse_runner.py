@@ -534,6 +534,7 @@ class Hub:
         s["threshold"] = self.threshold
         s["model_path"] = MODEL_PATH
         s["target"] = EI_TARGET
+        s["version"] = os.environ.get("SNAP_VERSION", "dev")
         s["upload_enabled"] = bool(self.settings["upload_token"])
         return s
 
