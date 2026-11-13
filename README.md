@@ -6,6 +6,8 @@
 
 **Run any Edge Impulse model on Ubuntu Core. Plug and play.**
 
+![impulse-runner on a Raspberry Pi 5: YOLOv5 detecting three bottles, with CPU, temperature, RAM and inference time](docs/screenshots/camera.jpg)
+
 Export your Edge Impulse project as a Linux `.eim`, drop it into `impulse-runner`, and it
 starts running on live data straight away: camera, microphone, or your own sensor readings.
 No code, no SDK, no rebuild.

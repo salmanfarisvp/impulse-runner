@@ -3,16 +3,18 @@
 impulse-runner uses CalVer: `YY.MM.N`. Each release's section below becomes its GitHub
 Release notes.
 
+## 26.11.3
+
+- Fix the page on phones: the panel was wider than the screen and the detection list
+  collapsed. The video now sits on top at 4:3 with the panel below, device stats in two
+  columns.
+
 ## 26.11.2
 
 Store listing polish. No behaviour changes.
 
 - App icon (detection brackets with a signal pulse), shown in the Snap Store and `snap info`.
 - README: Snap Store badge and icon.
-
-```bash
-sudo snap install impulse-runner --edge
-```
 
 ## 26.11.1
 
